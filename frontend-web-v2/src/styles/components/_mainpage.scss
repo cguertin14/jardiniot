@@ -24,20 +24,30 @@ $font-size-headers: 2rem;
         display: flex;
         flex-direction: column;
         align-items: center;
-  
+
         .color {
           display: flex;
           flex-direction: row;
           justify-content: space-between;
           margin-top: 1em;
-  
+
           .slider {
             margin-left: 2em;
             width: 15em;
           }
-  
+
           .name {
-  
+            width: 3em;
+            max-width: 3em;
+            text-align: right;
+          }
+
+          .color-value {
+            position: relative;
+            top: -5px;
+            left: 5px;
+            width: 3em;
+            max-width: 3em;
           }
         }
       }
@@ -56,16 +66,16 @@ $font-size-headers: 2rem;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-  
+
         .fan {
           display: flex;
           flex-direction: row;
           margin-top: 1em;
-  
+
           .name {
-  
+
           }
-  
+
           .switch {
             margin-left: 1em;
           }

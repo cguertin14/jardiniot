@@ -2,24 +2,24 @@ import React, { Component } from 'react';
 import LightToggle from './LightToggle';
 import FanToggle from './FanToggle';
 
-import API from '../Api';
+import Api from '../Api';
 
 export default class MainPage extends Component {
 	constructor(props) {
 		super(props);
+
 		this.state = {
 			temp: '',
 			hum: '',
-			light1: [],
-			light2: [],
-			light3: [],
+			lights: [],
 			isLoaded: false
 		};
-		this.getLightsValues();
 	}
 
-	componentWillMount() {
-		this.getLightsValues();
+	async componentWillMount() {
+		const res = await Api.get('/lights');
+		this.setState({ lights: res.data.lights });
+		this.setState({ isLoaded: true });
 	}
 
 	componentDidMount() {
@@ -28,20 +28,43 @@ export default class MainPage extends Component {
 
 	async startAutoUpdate() {
 		this.autoUpdateSensors = setInterval(async () => {
-			const res = await API.get('/sensors');
-			const { sensors } = res.data;
+			const tasks = [
+				Api.get('/sensors'),
+				Api.get('/lights'),
+			];
+
+			const [{sensors}, {lights}] = await Promise.all(tasks)
+				.then(res => res.map(x => x.data));
+
 			this.setState({ temp: sensors[0].value });
 			this.setState({ hum: sensors[1].value });
-		}, 1 * 1000);
+			this.setState({ lights })
+		}, 5 * 1000);
 	}
 
-	async getLightsValues() {
-		const res = await API.get('/lights');
-		const { lights } = res.data;
-		this.setState({ light1: lights[0] });
-		this.setState({ light2: lights[1] });
-		this.setState({ light3: lights[2] });
-		this.setState({ isLoaded: true });
+	updateLightStatus(color, value) {
+		// Trouver l'index de la lumière updater
+		const updatedLightIndex = this.state.lights.findIndex(l => l.name === color);
+
+		// Copier l'état des lumières
+		const lights = [...this.state.lights];
+
+		// Updater l'état de la lumière modifiée
+		lights[updatedLightIndex] = { ...lights[updatedLightIndex], value }
+
+		this.setState({ lights });
+
+		this.postLightUpdate();
+	}
+
+	postLightUpdate() {
+		// Transformer lights en {couleur: valeur}
+		const updatedLights = this.state.lights.reduce((lights, lightStatus) => {
+			lights[lightStatus.name.toLowerCase()] = lightStatus.value;
+			return lights;
+		}, {});
+
+		Api.post('/lights', updatedLights, { headers: { "Content-Type": "application/json" } });
 	}
 
 	render() {
@@ -57,6 +80,10 @@ export default class MainPage extends Component {
 		// Component global pour changer les fans
 		//  Component pour changer la fan 1
 		//  Component pour changer la fan 2
+		const updateLight = this.updateLightStatus.bind(this);
+
+		const lights = this.state.lights.map(light =>
+			<LightToggle light={light} key={light.id} id={light.id} update-lights={updateLight} />);
 
 		return (
 			<div className="main-page">
@@ -65,9 +92,7 @@ export default class MainPage extends Component {
 						<p id="temperature">{this.state.temp}</p>
 						{this.state.isLoaded &&
 							<div className="colors">
-								<LightToggle light={this.state.light1} id={1} />
-								<LightToggle light={this.state.light2} id={2} />
-								<LightToggle light={this.state.light3} id={3} />
+								{lights}
 							</div>
 						}
 					</div>
